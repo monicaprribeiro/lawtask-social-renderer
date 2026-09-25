@@ -5,45 +5,75 @@ const path = require("path");
 
 const app = express();
 
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "10mb" }));
 
 const PORT = process.env.PORT || 3000;
-
-// Pasta onde as imagens serão armazenadas
 const OUTPUT_DIR = path.join(__dirname, "public", "renders");
 
-// Cria a pasta caso ainda não exista
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-// Disponibiliza os arquivos publicamente
 app.use("/renders", express.static(OUTPUT_DIR));
 
 
-// ======================================================
+// =====================================================
 // HEALTH CHECK
-// ======================================================
+// =====================================================
 
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "LawTask Social Renderer",
-    version: "1.1.0"
+    version: "2.0.0"
   });
 });
 
 
-// ======================================================
-// TEMPLATE DA ARTE
-// ======================================================
+// =====================================================
+// UTILITÁRIOS
+// =====================================================
+
+function escapeHTML(text = "") {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function slug() {
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 8)}`;
+}
+
+
+// =====================================================
+// TEMPLATE LAWTASK
+// =====================================================
 
 function criarHTML({
   categoria = "",
   assunto = "",
   resumo = "",
-  texto_arte = ""
+  texto_arte = "",
+  formato = "unico",
+  pagina = null,
+  totalPaginas = null
 }) {
 
-  const textoPrincipal = texto_arte || assunto;
+  const isCarrossel = formato === "carrossel";
+
+  const largura = 1080;
+  const altura = isCarrossel ? 1350 : 1080;
+
+  const titulo = texto_arte || assunto;
+
+  const contador =
+    pagina && totalPaginas
+      ? `${pagina}/${totalPaginas}`
+      : "";
 
   return `
 <!DOCTYPE html>
@@ -63,217 +93,499 @@ html,
 body {
   margin: 0;
   padding: 0;
-  width: 1080px;
-  height: 1350px;
-}
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background:
-    radial-gradient(
-      circle at 80% 10%,
-      rgba(212, 175, 55, 0.10),
-      transparent 30%
-    ),
-    linear-gradient(
-      145deg,
-      #08111f,
-      #0d1b2a
-    );
+  width: ${largura}px;
+  height: ${altura}px;
 
-  color: #ffffff;
-}
-
-.arte {
-  width: 1080px;
-  height: 1350px;
-
-  padding: 90px;
-
-  display: flex;
-  flex-direction: column;
-
-  position: relative;
   overflow: hidden;
 }
 
+body {
+  font-family:
+    Inter,
+    Arial,
+    Helvetica,
+    sans-serif;
 
-/* detalhe decorativo */
+  background: #F5F0E7;
 
-.arte::before {
-  content: "";
+  color: #173D35;
+}
+
+
+/* =====================================================
+   CONTAINER
+===================================================== */
+
+.post {
+
+  width: ${largura}px;
+  height: ${altura}px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: #F5F0E7;
+
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =====================================================
+   FORMA ORGÂNICA SUPERIOR
+===================================================== */
+
+.curva-superior {
+
   position: absolute;
 
-  width: 400px;
-  height: 400px;
+  width: 720px;
+  height: 570px;
 
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  top: -310px;
+  right: -190px;
+
+  border-radius:
+    40% 60% 55% 45%
+    / 55% 45% 55% 45%;
+
+  background: #214F43;
+
+  transform: rotate(-10deg);
+
+  border: 4px solid #D5A62E;
+}
+
+
+/* =====================================================
+   FORMA ORGÂNICA INFERIOR
+===================================================== */
+
+.curva-inferior {
+
+  position: absolute;
+
+  width: 600px;
+  height: 500px;
+
+  bottom: -350px;
+  left: -220px;
+
+  border-radius:
+    60% 40% 55% 45%
+    / 45% 55% 45% 55%;
+
+  background: #214F43;
+
+  border: 4px solid #D5A62E;
+
+  transform: rotate(18deg);
+}
+
+
+/* =====================================================
+   CABEÇALHO
+===================================================== */
+
+.header {
+
+  position: relative;
+  z-index: 5;
+
+  padding:
+    ${isCarrossel ? "62px" : "52px"}
+    70px 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+.logo {
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  color: #173D35;
+
+  font-size: 31px;
+
+  font-weight: 800;
+
+  letter-spacing: -1px;
+}
+
+
+.logo-icon {
+
+  width: 42px;
+  height: 42px;
+
   border-radius: 50%;
 
-  right: -180px;
-  top: -100px;
-}
+  background: #D5A62E;
 
-
-/* MARCA */
-
-.marca {
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
 
-  font-size: 34px;
+  color: #173D35;
+
+  font-size: 23px;
+
+  font-weight: 900;
+}
+
+
+.logo .task {
+  color: #D5A62E;
+}
+
+
+.contador {
+
+  font-size: 21px;
+
   font-weight: 700;
-  letter-spacing: 1px;
-}
 
-.simbolo {
-  width: 16px;
-  height: 48px;
+  color: #F5F0E7;
 
-  background: #d4af37;
-  border-radius: 8px;
-}
+  min-width: 60px;
 
-.law {
-  color: #ffffff;
-}
-
-.task {
-  color: #d4af37;
+  text-align: right;
 }
 
 
-/* CATEGORIA */
+/* =====================================================
+   CONTEÚDO
+===================================================== */
+
+.content {
+
+  position: relative;
+
+  z-index: 4;
+
+  flex: 1;
+
+  padding:
+    ${isCarrossel ? "135px" : "105px"}
+    82px 80px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  max-width: 970px;
+}
+
+
+/* =====================================================
+   CATEGORIA
+===================================================== */
 
 .categoria {
-  margin-top: 150px;
 
-  font-size: 24px;
-  font-weight: 600;
+  display: inline-flex;
+
+  align-self: flex-start;
+
+  background: #D5A62E;
+
+  color: #173D35;
+
+  padding: 12px 23px;
+
+  border-radius: 30px;
+
+  font-size: 19px;
+
+  font-weight: 800;
 
   text-transform: uppercase;
-  letter-spacing: 4px;
 
-  color: #d4af37;
+  letter-spacing: 1.8px;
+
+  margin-bottom: 32px;
 }
 
 
-/* TEXTO PRINCIPAL */
+/* =====================================================
+   TÍTULO
+===================================================== */
 
 .titulo {
-  margin-top: 35px;
+
+  color: #173D35;
+
+  font-size:
+    ${isCarrossel ? "69px" : "62px"};
+
+  line-height: 1.04;
+
+  font-weight: 800;
+
+  letter-spacing: -2.5px;
 
   max-width: 850px;
+}
 
-  font-size: 72px;
-  line-height: 1.08;
+
+/* destaque */
+
+.titulo strong {
+  color: #D5A62E;
+}
+
+
+/* =====================================================
+   LINHA DECORATIVA
+===================================================== */
+
+.linha {
+
+  margin-top: 38px;
+
+  width: 110px;
+
+  height: 7px;
+
+  border-radius: 8px;
+
+  background: #D5A62E;
+}
+
+
+/* =====================================================
+   RESUMO
+===================================================== */
+
+.resumo {
+
+  margin-top: 35px;
+
+  color: #4C625C;
+
+  font-size:
+    ${isCarrossel ? "30px" : "27px"};
+
+  line-height: 1.42;
+
+  font-weight: 400;
+
+  max-width: 790px;
+}
+
+
+/* =====================================================
+   ELEMENTO GRÁFICO
+===================================================== */
+
+.elemento {
+
+  position: absolute;
+
+  right: 65px;
+
+  bottom: ${isCarrossel ? "190px" : "150px"};
+
+  width: 155px;
+  height: 155px;
+
+  border: 3px solid #D5A62E;
+
+  border-radius: 32px;
+
+  transform: rotate(10deg);
+
+  opacity: .65;
+}
+
+
+.elemento::after {
+
+  content: "";
+
+  position: absolute;
+
+  width: 75px;
+  height: 75px;
+
+  border-radius: 50%;
+
+  background: #214F43;
+
+  right: -25px;
+  bottom: -25px;
+}
+
+
+/* =====================================================
+   RODAPÉ
+===================================================== */
+
+.footer {
+
+  position: relative;
+
+  z-index: 6;
+
+  height: 105px;
+
+  background: #173D35;
+
+  padding: 0 70px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  color: #F5F0E7;
+}
+
+
+.footer-text {
+
+  font-size: 20px;
+
+  font-weight: 500;
+}
+
+
+.footer-site {
+
+  color: #D5A62E;
+
+  font-size: 21px;
+
+  font-weight: 800;
+}
+
+
+/* =====================================================
+   SETA DO CARROSSEL
+===================================================== */
+
+.arraste {
+
+  position: absolute;
+
+  right: 70px;
+
+  bottom: 135px;
+
+  z-index: 8;
+
+  color: #173D35;
+
+  font-size: 17px;
 
   font-weight: 700;
 
-  letter-spacing: -2px;
-}
-
-
-/* LINHA */
-
-.linha {
-  width: 110px;
-  height: 6px;
-
-  margin-top: 45px;
-
-  background: #d4af37;
-
-  border-radius: 5px;
-}
-
-
-/* RESUMO */
-
-.resumo {
-  margin-top: 45px;
-
-  max-width: 800px;
-
-  font-size: 32px;
-  line-height: 1.45;
-
-  color: #cbd5e1;
-}
-
-
-/* RODAPÉ */
-
-.rodape {
-  margin-top: auto;
-
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  padding-top: 35px;
-
-  border-top: 1px solid rgba(255,255,255,0.15);
-
-  font-size: 22px;
-
-  color: #94a3b8;
-}
-
-.site {
-  color: #d4af37;
-  font-weight: 600;
+  display: ${isCarrossel ? "block" : "none"};
 }
 
 </style>
 
 </head>
 
+
 <body>
 
-<div class="arte">
+<div class="post">
 
-  <div class="marca">
+  <div class="curva-superior"></div>
 
-    <div class="simbolo"></div>
+  <div class="curva-inferior"></div>
 
-    <div>
-      <span class="law">Law</span><span class="task">Task</span>
+
+  <header class="header">
+
+    <div class="logo">
+
+      <div class="logo-icon">L</div>
+
+      <div>
+        Law<span class="task">Task</span>
+      </div>
+
     </div>
 
-  </div>
+    <div class="contador">
+      ${escapeHTML(contador)}
+    </div>
+
+  </header>
 
 
-  <div class="categoria">
-    ${escapeHTML(categoria)}
-  </div>
+  <main class="content">
+
+    ${
+      categoria
+        ? `
+        <div class="categoria">
+          ${escapeHTML(categoria)}
+        </div>
+        `
+        : ""
+    }
 
 
-  <div class="titulo">
-    ${escapeHTML(textoPrincipal)}
-  </div>
+    <div class="titulo">
+      ${escapeHTML(titulo)}
+    </div>
 
 
-  <div class="linha"></div>
+    <div class="linha"></div>
 
 
-  <div class="resumo">
-    ${escapeHTML(resumo)}
-  </div>
+    ${
+      resumo
+        ? `
+        <div class="resumo">
+          ${escapeHTML(resumo)}
+        </div>
+        `
+        : ""
+    }
+
+  </main>
 
 
-  <div class="rodape">
+  <div class="elemento"></div>
 
-    <div>
+
+  ${
+    isCarrossel
+      ? `
+      <div class="arraste">
+        DESLIZE →
+      </div>
+      `
+      : ""
+  }
+
+
+  <footer class="footer">
+
+    <div class="footer-text">
       Apoio jurídico para advogados e escritórios
     </div>
 
-    <div class="site">
+    <div class="footer-site">
       lawtask.com.br
     </div>
 
-  </div>
+  </footer>
 
 </div>
 
@@ -284,25 +596,67 @@ body {
 }
 
 
-// ======================================================
-// SEGURANÇA BÁSICA PARA TEXTO
-// ======================================================
+// =====================================================
+// GERAR IMAGEM
+// =====================================================
 
-function escapeHTML(texto = "") {
+async function gerarImagem(browser, dados) {
 
-  return String(texto)
+  const isCarrossel =
+    dados.formato === "carrossel";
 
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const width = 1080;
+
+  const height =
+    isCarrossel ? 1350 : 1080;
+
+
+  const page = await browser.newPage({
+    viewport: {
+      width,
+      height
+    },
+
+    deviceScaleFactor: 1
+  });
+
+
+  await page.setContent(
+    criarHTML(dados),
+    {
+      waitUntil: "networkidle"
+    }
+  );
+
+
+  const nomeArquivo =
+    `lawtask-${slug()}.png`;
+
+
+  const caminho =
+    path.join(
+      OUTPUT_DIR,
+      nomeArquivo
+    );
+
+
+  await page.screenshot({
+    path: caminho,
+    type: "png",
+    fullPage: false
+  });
+
+
+  await page.close();
+
+
+  return nomeArquivo;
 }
 
 
-// ======================================================
+// =====================================================
 // RENDER
-// ======================================================
+// =====================================================
 
 app.post("/render", async (req, res) => {
 
@@ -311,95 +665,175 @@ app.post("/render", async (req, res) => {
   try {
 
     const {
+
       categoria = "",
+
       assunto = "",
+
       resumo = "",
+
       formato = "unico",
+
       texto_arte = "",
-      legenda = ""
+
+      legenda = "",
+
+      slides = []
+
     } = req.body;
 
 
     if (!assunto) {
 
-      return res.status(400).json({
-        success: false,
-        error: "O campo 'assunto' é obrigatório."
+      return res
+        .status(400)
+        .json({
+
+          success: false,
+
+          error:
+            "O campo 'assunto' é obrigatório."
+
+        });
+
+    }
+
+
+    browser = await chromium.launch({
+
+      headless: true,
+
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox"
+      ]
+
+    });
+
+
+    const protocolo =
+      req.headers["x-forwarded-proto"]
+      || req.protocol;
+
+
+    const host =
+      req.headers["x-forwarded-host"]
+      || req.get("host");
+
+
+    // ===============================================
+    // CARROSSEL COM SLIDES
+    // ===============================================
+
+    if (
+      formato === "carrossel" &&
+      Array.isArray(slides) &&
+      slides.length > 0
+    ) {
+
+      const imagens = [];
+
+
+      for (
+        let i = 0;
+        i < slides.length;
+        i++
+      ) {
+
+        const slide = slides[i];
+
+
+        const arquivo =
+          await gerarImagem(
+            browser,
+            {
+
+              categoria,
+
+              assunto,
+
+              resumo:
+                slide.resumo || "",
+
+              texto_arte:
+                slide.titulo ||
+                slide.texto ||
+                assunto,
+
+              formato: "carrossel",
+
+              pagina: i + 1,
+
+              totalPaginas:
+                slides.length
+
+            }
+          );
+
+
+        imagens.push({
+
+          pagina: i + 1,
+
+          arquivo,
+
+          image_url:
+            `${protocolo}://${host}/renders/${arquivo}`
+
+        });
+
+      }
+
+
+      await browser.close();
+
+      browser = null;
+
+
+      return res.json({
+
+        success: true,
+
+        formato: "carrossel",
+
+        quantidade:
+          imagens.length,
+
+        images: imagens,
+
+        legenda
+
       });
 
     }
 
 
-    // Nome único para a imagem
+    // ===============================================
+    // POST ÚNICO OU CARROSSEL AINDA SEM SLIDES
+    // ===============================================
 
-    const nomeArquivo =
-      `lawtask-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2, 8)}.png`;
+    const arquivo =
+      await gerarImagem(
+        browser,
+        {
 
+          categoria,
 
-    const caminhoArquivo =
-      path.join(OUTPUT_DIR, nomeArquivo);
+          assunto,
 
+          resumo,
 
-    // Inicia Chromium
+          texto_arte,
 
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox"
-      ]
-    });
+          formato
 
-
-    const page = await browser.newPage({
-      viewport: {
-        width: 1080,
-        height: 1350
-      },
-      deviceScaleFactor: 1
-    });
-
-
-    // Monta o HTML
-
-    const html = criarHTML({
-      categoria,
-      assunto,
-      resumo,
-      texto_arte
-    });
-
-
-    await page.setContent(html, {
-      waitUntil: "networkidle"
-    });
-
-
-    // Gera PNG
-
-    await page.screenshot({
-      path: caminhoArquivo,
-      type: "png",
-      fullPage: false
-    });
+        }
+      );
 
 
     await browser.close();
+
     browser = null;
-
-
-    // URL pública
-
-    const protocolo =
-      req.headers["x-forwarded-proto"] || req.protocol;
-
-    const host =
-      req.headers["x-forwarded-host"] || req.get("host");
-
-    const imageUrl =
-      `${protocolo}://${host}/renders/${nomeArquivo}`;
 
 
     return res.json({
@@ -408,18 +842,22 @@ app.post("/render", async (req, res) => {
 
       formato,
 
-      image_url: imageUrl,
+      image_url:
+        `${protocolo}://${host}/renders/${arquivo}`,
 
-      legenda,
+      arquivo,
 
-      arquivo: nomeArquivo
+      legenda
 
     });
 
 
   } catch (error) {
 
-    console.error("Erro no renderer:", error);
+    console.error(
+      "Erro no renderer:",
+      error
+    );
 
 
     if (browser) {
@@ -431,27 +869,34 @@ app.post("/render", async (req, res) => {
     }
 
 
-    return res.status(500).json({
+    return res
+      .status(500)
+      .json({
 
-      success: false,
+        success: false,
 
-      error: error.message
+        error:
+          error.message
 
-    });
+      });
 
   }
 
 });
 
 
-// ======================================================
+// =====================================================
 // START
-// ======================================================
+// =====================================================
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
 
-  console.log(
-    `LawTask Social Renderer rodando na porta ${PORT}`
-  );
+    console.log(
+      `LawTask Social Renderer rodando na porta ${PORT}`
+    );
 
-});
+  }
+);
