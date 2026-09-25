@@ -20,6 +20,80 @@ if (!fs.existsSync(RENDERS_DIR)) {
   fs.mkdirSync(RENDERS_DIR, { recursive: true });
 }
 
+const UPLOADS_DIR = path.join(PUBLIC_DIR, "uploads");
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+/* =========================================================
+   UPLOAD DE IMAGENS GERADAS PELO N8N
+========================================================= */
+
+app.post(
+  "/upload",
+  express.raw({
+    type: ["image/png", "image/jpeg", "image/webp"],
+    limit: "10mb"
+  }),
+  (req, res) => {
+    try {
+      if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Nenhuma imagem foi recebida."
+        });
+      }
+
+      const contentType = req.headers["content-type"] || "image/png";
+
+      const extensions = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp"
+      };
+
+      const extension = extensions[contentType];
+
+      if (!extension) {
+        return res.status(415).json({
+          success: false,
+          error: "Formato de imagem não suportado."
+        });
+      }
+
+      const filename =
+        `lawtask-upload-${Date.now()}-${randomId()}.${extension}`;
+
+      const filePath = path.join(UPLOADS_DIR, filename);
+
+      fs.writeFileSync(filePath, req.body);
+
+      const imageUrl =
+        `${PUBLIC_URL}/uploads/${filename}`;
+
+      console.log(
+        "IMAGEM RECEBIDA DO N8N:",
+        imageUrl
+      );
+
+      return res.json({
+        success: true,
+        arquivo: filename,
+        image_url: imageUrl
+      });
+
+    } catch (error) {
+      console.error("ERRO NO UPLOAD:", error);
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+);
+
 /* =========================================================
    UTILITÁRIOS
 ========================================================= */
