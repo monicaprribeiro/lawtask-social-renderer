@@ -4,12 +4,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --omit=dev
+RUN npm install
 
 COPY . .
 
-ENV NODE_ENV=production
-ENV PORT=3000
+RUN mkdir -p /app/public/renders
 
 EXPOSE 3000
 
