@@ -37,8 +37,51 @@ function randomId() {
   return crypto.randomBytes(4).toString("hex");
 }
 
-function normalizeTipo(tipo = "") {
+/*
+  O n8n trabalha com:
+  capa
+  conteudo
+  fechamento
+
+  O Renderer trabalha internamente com:
+  hero
+  lista
+  cards
+  destaque
+  final
+*/
+
+function normalizeTipo(tipo = "", slide = {}) {
   const valor = String(tipo).toLowerCase().trim();
+
+  if (valor === "capa") {
+    return "hero";
+  }
+
+  if (valor === "fechamento") {
+    return "final";
+  }
+
+  if (valor === "conteudo") {
+    /*
+      Se houver vários itens, usamos LISTA.
+      Se houver poucos itens, podemos usar CARDS.
+
+      Isso cria variação visual automática.
+    */
+    const quantidadeItens =
+      Array.isArray(slide.itens) ? slide.itens.length : 0;
+
+    if (quantidadeItens >= 4) {
+      return "lista";
+    }
+
+    if (quantidadeItens >= 2) {
+      return "cards";
+    }
+
+    return "destaque";
+  }
 
   const permitidos = [
     "hero",
@@ -53,9 +96,21 @@ function normalizeTipo(tipo = "") {
 
 function normalizarSlide(slide = {}, fallback = {}) {
   return {
-    tipo: normalizeTipo(slide.tipo || fallback.tipo || "destaque"),
-    numero: slide.numero || fallback.numero || "",
-    categoria: slide.categoria || fallback.categoria || "",
+    tipo: normalizeTipo(
+      slide.tipo || fallback.tipo || "destaque",
+      slide
+    ),
+
+    numero:
+      slide.numero ||
+      fallback.numero ||
+      "",
+
+    categoria:
+      slide.categoria ||
+      fallback.categoria ||
+      "",
+
     titulo:
       slide.titulo ||
       slide.texto_arte ||
@@ -63,17 +118,38 @@ function normalizarSlide(slide = {}, fallback = {}) {
       fallback.texto_arte ||
       fallback.assunto ||
       "",
-    subtitulo: slide.subtitulo || fallback.subtitulo || "",
-    destaque: slide.destaque || fallback.destaque || "",
+
+    subtitulo:
+      slide.subtitulo ||
+      fallback.subtitulo ||
+      "",
+
+    destaque:
+      slide.destaque ||
+      fallback.destaque ||
+      "",
+
     texto:
       slide.texto ||
       slide.resumo ||
       fallback.texto ||
       fallback.resumo ||
       "",
-    itens: Array.isArray(slide.itens) ? slide.itens : [],
-    imagem_url: slide.imagem_url || fallback.imagem_url || "",
-    imagem_tema: slide.imagem_tema || fallback.imagem_tema || ""
+
+    itens:
+      Array.isArray(slide.itens)
+        ? slide.itens
+        : [],
+
+    imagem_url:
+      slide.imagem_url ||
+      fallback.imagem_url ||
+      "",
+
+    imagem_tema:
+      slide.imagem_tema ||
+      fallback.imagem_tema ||
+      ""
   };
 }
 
@@ -175,17 +251,6 @@ function baseCss() {
       z-index: 2;
     }
 
-    .blob-bottom {
-      position: absolute;
-      width: 540px;
-      height: 350px;
-      left: -280px;
-      bottom: -145px;
-      border-radius: 50%;
-      background: var(--verde);
-      z-index: 2;
-    }
-
     .number {
       display: flex;
       align-items: center;
@@ -204,21 +269,9 @@ function baseCss() {
       margin: 0;
       color: var(--verdeEscuro);
       font-size: 66px;
-      line-height: 0.98;
+      line-height: .98;
       font-weight: 800;
       letter-spacing: -2px;
-    }
-
-    .subtitle {
-      color: var(--verdeEscuro);
-      font-size: 39px;
-      line-height: 1.12;
-    }
-
-    .body-text {
-      color: var(--texto);
-      font-size: 31px;
-      line-height: 1.3;
     }
 
     .eyebrow {
@@ -248,7 +301,7 @@ function baseCss() {
     }
 
     .list-card {
-      background: rgba(255,255,255,.66);
+      background: rgba(255,255,255,.70);
       border-radius: 32px;
       padding: 28px 32px;
     }
@@ -275,10 +328,6 @@ function baseCss() {
       color: var(--verdeEscuro);
       font-weight: 900;
       font-size: 24px;
-    }
-
-    .accent {
-      color: var(--amarelo);
     }
 
     .small-label {
@@ -330,7 +379,7 @@ function imagem(slide, className = "photo") {
 }
 
 /* =========================================================
-   TEMPLATE 1 — HERO
+   HERO — CAPA
 ========================================================= */
 
 function renderHero(slide) {
@@ -339,11 +388,11 @@ function renderHero(slide) {
 
       ${logo()}
 
-      <div class="hero-curve"></div>
-
       <div class="hero-photo">
         ${imagem(slide, "photo hero-image")}
       </div>
+
+      <div class="hero-curve"></div>
 
       <div class="hero-content">
 
@@ -380,7 +429,7 @@ function renderHero(slide) {
 }
 
 /* =========================================================
-   TEMPLATE 2 — LISTA
+   LISTA
 ========================================================= */
 
 function renderLista(slide) {
@@ -443,8 +492,6 @@ function renderLista(slide) {
 
       </div>
 
-      <div class="lista-bottom-shape"></div>
-
       ${footer()}
 
     </div>
@@ -452,7 +499,7 @@ function renderLista(slide) {
 }
 
 /* =========================================================
-   TEMPLATE 3 — CARDS
+   CARDS
 ========================================================= */
 
 function renderCards(slide) {
@@ -461,8 +508,12 @@ function renderCards(slide) {
     .map(
       (item, index) => `
         <div class="info-card">
-          <div class="card-number">${String(index + 1).padStart(2, "0")}</div>
-          <div class="card-text">${escapeHtml(item)}</div>
+          <div class="card-number">
+            ${String(index + 1).padStart(2, "0")}
+          </div>
+          <div class="card-text">
+            ${escapeHtml(item)}
+          </div>
         </div>
       `
     )
@@ -510,7 +561,7 @@ function renderCards(slide) {
 }
 
 /* =========================================================
-   TEMPLATE 4 — DESTAQUE
+   DESTAQUE
 ========================================================= */
 
 function renderDestaque(slide) {
@@ -528,14 +579,20 @@ function renderDestaque(slide) {
       <div class="destaque-content">
 
         ${
-          slide.categoria
-            ? `<div class="eyebrow">${escapeHtml(slide.categoria)}</div>`
+          slide.numero
+            ? `<div class="small-label">ETAPA ${escapeHtml(slide.numero)}</div>`
             : ""
         }
 
         <h1 class="destaque-title">
           ${escapeHtml(slide.titulo)}
         </h1>
+
+        ${
+          slide.destaque
+            ? `<div class="destaque-highlight">${escapeHtml(slide.destaque)}</div>`
+            : ""
+        }
 
         ${
           slide.texto
@@ -545,17 +602,6 @@ function renderDestaque(slide) {
 
       </div>
 
-      <div class="destaque-card">
-        <div class="destaque-card-icon">✓</div>
-        <div>
-          ${
-            slide.destaque
-              ? escapeHtml(slide.destaque)
-              : "Informação jurídica aplicada à rotina."
-          }
-        </div>
-      </div>
-
       ${footer()}
 
     </div>
@@ -563,7 +609,7 @@ function renderDestaque(slide) {
 }
 
 /* =========================================================
-   TEMPLATE 5 — FINAL
+   FINAL
 ========================================================= */
 
 function renderFinal(slide) {
@@ -616,13 +662,28 @@ function renderFinal(slide) {
 }
 
 /* =========================================================
-   CSS ESPECÍFICO DOS TEMPLATES
+   CSS DOS TEMPLATES
 ========================================================= */
 
 function templateCss() {
   return `
 
     /* ================= HERO ================= */
+
+    .hero-photo {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 560px;
+      height: 1268px;
+      background: #ddd3c3;
+      z-index: 1;
+    }
+
+    .hero-image {
+      width: 100%;
+      height: 100%;
+    }
 
     .hero-curve {
       position: absolute;
@@ -635,58 +696,44 @@ function templateCss() {
       z-index: 8;
     }
 
-    .hero-photo {
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: 520px;
-      height: 1268px;
-      background: #ddd3c3;
-      z-index: 1;
-    }
-
-    .hero-image {
-      width: 100%;
-      height: 100%;
-    }
-
     .hero-content {
       position: absolute;
       z-index: 15;
       left: 70px;
-      top: 310px;
-      width: 630px;
+      top: 300px;
+      width: 650px;
     }
 
     .hero-title {
       margin: 25px 0 0;
       color: var(--verdeEscuro);
-      font-size: 82px;
-      line-height: .95;
+      font-size: 78px;
+      line-height: .96;
       letter-spacing: -4px;
       font-weight: 900;
     }
 
     .hero-subtitle {
-      margin-top: 25px;
+      margin-top: 30px;
+      width: 590px;
       color: var(--verdeEscuro);
-      font-size: 43px;
-      line-height: 1.05;
+      font-size: 39px;
+      line-height: 1.1;
     }
 
     .hero-text {
       width: 580px;
-      margin-top: 34px;
+      margin-top: 30px;
       color: var(--texto);
-      font-size: 29px;
+      font-size: 28px;
       line-height: 1.3;
     }
 
     .hero-decoration {
       position: absolute;
       z-index: 12;
-      left: -150px;
-      bottom: 20px;
+      left: -160px;
+      bottom: 15px;
       width: 450px;
       height: 290px;
       background: var(--verde);
@@ -700,7 +747,7 @@ function templateCss() {
       position: absolute;
       right: 0;
       top: 0;
-      width: 430px;
+      width: 440px;
       height: 1268px;
       z-index: 1;
       background: #ded6c8;
@@ -762,17 +809,6 @@ function templateCss() {
       margin-top: 28px;
     }
 
-    .lista-bottom-shape {
-      position: absolute;
-      left: -250px;
-      bottom: -110px;
-      width: 620px;
-      height: 280px;
-      border-radius: 50%;
-      background: var(--verde);
-      z-index: 7;
-    }
-
     /* ================= CARDS ================= */
 
     .cards-content {
@@ -811,7 +847,7 @@ function templateCss() {
       min-height: 150px;
       padding: 23px;
       border-radius: 26px;
-      background: rgba(255,255,255,.74);
+      background: rgba(255,255,255,.78);
     }
 
     .card-number {
@@ -880,49 +916,27 @@ function templateCss() {
     }
 
     .destaque-title {
-      margin: 22px 0 0;
+      margin: 20px 0 0;
       color: var(--verdeEscuro);
       font-size: 76px;
       line-height: .98;
       letter-spacing: -3px;
     }
 
+    .destaque-highlight {
+      margin-top: 28px;
+      width: 590px;
+      font-size: 34px;
+      line-height: 1.15;
+      font-weight: 800;
+      color: var(--verdeEscuro);
+    }
+
     .destaque-text {
       width: 600px;
-      margin-top: 30px;
+      margin-top: 25px;
       font-size: 31px;
       line-height: 1.25;
-    }
-
-    .destaque-card {
-      position: absolute;
-      z-index: 18;
-      left: 70px;
-      bottom: 180px;
-      width: 570px;
-      min-height: 125px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      padding: 25px 30px;
-      border-radius: 28px;
-      background: rgba(255,255,255,.80);
-      font-size: 26px;
-      line-height: 1.2;
-    }
-
-    .destaque-card-icon {
-      flex: 0 0 65px;
-      width: 65px;
-      height: 65px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: var(--amarelo);
-      color: white;
-      font-size: 36px;
-      font-weight: 900;
     }
 
     /* ================= FINAL ================= */
@@ -985,7 +999,7 @@ function templateCss() {
       align-items: center;
       gap: 25px;
       border-radius: 28px;
-      background: rgba(255,255,255,.76);
+      background: rgba(255,255,255,.78);
       font-size: 27px;
       line-height: 1.2;
     }
@@ -1041,6 +1055,7 @@ function criarDocumento(slide) {
 
       <head>
         <meta charset="UTF-8">
+
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0"
@@ -1082,9 +1097,7 @@ async function gerarImagem(browser, slide, index = 0) {
     });
 
     /*
-      Como o HTML é carregado com setContent(), caminhos relativos
-      como /assets/logo-lawtask.png precisam ser convertidos para
-      uma URL que o navegador consiga buscar.
+      Corrige URLs locais do próprio Renderer.
     */
 
     await page.evaluate((publicUrl) => {
@@ -1093,19 +1106,27 @@ async function gerarImagem(browser, slide, index = 0) {
       });
     }, PUBLIC_URL);
 
-    await page.waitForTimeout(800);
+    /*
+      Aguarda logo + fotografia.
+    */
 
     try {
       await page.waitForFunction(() => {
         return Array.from(document.images).every(
-          (img) => img.complete
+          (img) =>
+            img.complete &&
+            img.naturalWidth > 0
         );
       }, {
-        timeout: 10000
+        timeout: 15000
       });
     } catch {
-      console.log("Alguma imagem demorou para carregar.");
+      console.log(
+        `Aviso: alguma imagem do slide ${index + 1} não terminou de carregar.`
+      );
     }
+
+    await page.waitForTimeout(500);
 
     const timestamp = Date.now();
     const id = randomId();
@@ -1126,7 +1147,8 @@ async function gerarImagem(browser, slide, index = 0) {
 
     return {
       arquivo: filename,
-      image_url: `${PUBLIC_URL}/renders/${filename}`
+      image_url:
+        `${PUBLIC_URL}/renders/${filename}`
     };
 
   } finally {
@@ -1142,7 +1164,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "LawTask Social Renderer",
-    version: "2.0.0"
+    version: "2.1.0"
   });
 });
 
@@ -1156,27 +1178,11 @@ app.post("/render", async (req, res) => {
   try {
     const body = req.body || {};
 
-    /*
-      NOVO FORMATO:
-      {
-        assunto,
-        categoria,
-        legenda,
-        slides: [...]
-      }
-
-      FORMATO ANTIGO CONTINUA FUNCIONANDO:
-      {
-        categoria,
-        assunto,
-        resumo,
-        formato,
-        texto_arte,
-        legenda
-      }
-    */
-
     let slides = [];
+
+    /*
+      CARROSSEL COMPLETO
+    */
 
     if (
       Array.isArray(body.slides) &&
@@ -1190,20 +1196,56 @@ app.post("/render", async (req, res) => {
     } else {
 
       /*
-        Compatibilidade temporária com o fluxo atual do n8n.
+        ITEM INDIVIDUAL DO N8N.
+
+        Importante porque atualmente o Split Out
+        envia um slide por execução.
       */
 
       slides = [
         normalizarSlide(
           {
-            tipo: body.tipo || "destaque",
-            categoria: body.categoria,
+            tipo:
+              body.tipo ||
+              (
+                body.indice_slide === 1
+                  ? "capa"
+                  : (
+                    body.indice_slide === body.total_slides
+                      ? "fechamento"
+                      : "conteudo"
+                  )
+              ),
+
+            numero:
+              body.numero,
+
+            categoria:
+              body.categoria,
+
             titulo:
+              body.titulo ||
               body.texto_arte ||
               body.assunto,
-            texto: body.resumo,
-            destaque: "",
-            imagem_url: body.imagem_url
+
+            subtitulo:
+              body.subtitulo,
+
+            destaque:
+              body.destaque,
+
+            texto:
+              body.texto ||
+              body.resumo,
+
+            itens:
+              body.itens,
+
+            imagem_url:
+              body.imagem_url,
+
+            imagem_tema:
+              body.imagem_tema
           },
           body
         )
@@ -1248,6 +1290,7 @@ app.post("/render", async (req, res) => {
         numero: i + 1,
         tipo: slides[i].tipo,
         titulo: slides[i].titulo,
+        imagem_tema: slides[i].imagem_tema,
         ...resultado
       });
     }
@@ -1256,21 +1299,44 @@ app.post("/render", async (req, res) => {
     browser = null;
 
     /*
-      Mantém compatibilidade com o n8n atual.
-      Para apenas uma imagem, image_url continua disponível
-      diretamente na raiz.
+      UM SLIDE
     */
 
     if (resultados.length === 1) {
       return res.json({
         success: true,
-        formato: body.formato || "unico",
-        image_url: resultados[0].image_url,
-        arquivo: resultados[0].arquivo,
-        legenda: body.legenda || "",
-        slides: resultados
+        formato:
+          body.formato || "unico",
+
+        indice_slide:
+          body.indice_slide || 1,
+
+        total_slides:
+          body.total_slides || 1,
+
+        tipo:
+          resultados[0].tipo,
+
+        image_url:
+          resultados[0].image_url,
+
+        arquivo:
+          resultados[0].arquivo,
+
+        imagem_tema:
+          resultados[0].imagem_tema,
+
+        legenda:
+          body.legenda || "",
+
+        slides:
+          resultados
       });
     }
+
+    /*
+      CARROSSEL INTEIRO
+    */
 
     return res.json({
       success: true,
@@ -1306,6 +1372,6 @@ app.post("/render", async (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(
-    `LawTask Social Renderer v2.0.0 rodando na porta ${PORT}`
+    `LawTask Social Renderer v2.1.0 rodando na porta ${PORT}`
   );
 });
