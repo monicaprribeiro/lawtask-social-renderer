@@ -139,18 +139,15 @@ function normalizeTipo(tipo = "", slide = {}) {
   }
 
   if (valor === "conteudo") {
-    const quantidadeItens = Array.isArray(slide.itens)
-      ? slide.itens.length
-      : 0;
-
-    /*
-      Alternamos o layout conforme a estrutura
-      do conteúdo para evitar slides repetitivos.
-    */
-
-    // Identidade visual oficial: todos os slides de conteúdo
-    // usam o mesmo grid editorial, independentemente da quantidade de itens.
-    return "lista";
+    const indice = Number(slide.indice_slide || 0);
+    const quantidadeItens = Array.isArray(slide.itens) ? slide.itens.length : 0;
+    if (indice === 2) return "lista";
+    if (indice === 3) return "cards";
+    if (indice === 4) return "split-left";
+    if (indice === 5) return "destaque";
+    if (quantidadeItens >= 4) return "lista";
+    if (quantidadeItens >= 2) return "cards";
+    return "destaque";
   }
 
   const permitidos = [
@@ -158,6 +155,7 @@ function normalizeTipo(tipo = "", slide = {}) {
     "lista",
     "cards",
     "destaque",
+    "split-left",
     "final"
   ];
 
@@ -167,11 +165,14 @@ function normalizeTipo(tipo = "", slide = {}) {
 }
 
 function normalizarSlide(slide = {}, fallback = {}) {
+  const contexto = { ...fallback, ...slide };
   return {
     tipo: normalizeTipo(
       slide.tipo || fallback.tipo || "destaque",
-      slide
+      contexto
     ),
+    indice_slide: Number(slide.indice_slide ?? fallback.indice_slide ?? 0),
+    total_slides: Number(slide.total_slides ?? fallback.total_slides ?? 0),
 
     numero:
       slide.numero ??
@@ -601,6 +602,38 @@ function renderLista(slide) {
 }
 
 /* =========================================================
+   FOTO À ESQUERDA / CONTEÚDO À DIREITA
+========================================================= */
+
+function renderSplitLeft(slide) {
+  const itens = slide.itens.slice(0, 4).map((item, index) => `
+    <div class="split-item">
+      <div class="split-icon">${["✓", "◆", "▤", "●"][index] || "✓"}</div>
+      <div>${escapeHtml(item)}</div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="page split-left">
+      <div class="split-photo">${imagem(slide, "photo split-image")}</div>
+      <div class="split-green-top"></div>
+      <div class="split-panel"></div>
+      <div class="split-green-bottom"></div>
+      ${logo()}
+      <div class="split-content">
+        <div class="split-heading">
+          ${slide.numero ? `<div class="number">${escapeHtml(slide.numero)}</div>` : ""}
+          <h1 class="split-title">${escapeHtml(slide.titulo)}</h1>
+        </div>
+        ${slide.destaque ? `<div class="split-highlight">${escapeHtml(slide.destaque)}</div>` : ""}
+        ${slide.texto ? `<div class="split-text">${escapeHtml(slide.texto)}</div>` : ""}
+        ${itens ? `<div class="split-list">${itens}</div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
    CARDS
 ========================================================= */
 
@@ -1012,6 +1045,33 @@ function templateCss() {
     .final-text { width:600px; margin-top:32px; font-size:31px; line-height:1.28; }
     .final-box { width:570px; min-height:135px; margin-top:45px; padding:25px 30px; display:flex; align-items:center; gap:25px; border-radius:28px; background:rgba(255,255,255,.78); font-size:27px; line-height:1.2; }
     .final-check { flex:0 0 68px; width:68px; height:68px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--amarelo); color:white; font-size:38px; font-weight:900; }
+    /* =============== SPLIT LEFT =============== */
+    .split-left { background:var(--creme); }
+    .split-photo { position:absolute; left:0; top:0; width:48%; height:100%; z-index:1; overflow:hidden; }
+    .split-image { width:100%; height:100%; object-fit:cover; }
+    .split-panel { position:absolute; z-index:6; right:-80px; top:-70px; width:720px; height:1490px; background:var(--creme); border-radius:48% 0 0 44%; }
+    .split-green-top { position:absolute; z-index:4; right:-120px; top:-190px; width:560px; height:430px; background:var(--verde); border-radius:0 0 0 70%; }
+    .split-green-bottom { position:absolute; z-index:5; left:-170px; bottom:-145px; width:560px; height:360px; background:var(--verdeEscuro); border-radius:50%; transform:rotate(-12deg); }
+    .split-content { position:absolute; z-index:15; right:62px; top:270px; width:600px; }
+    .split-heading { display:flex; align-items:flex-start; gap:25px; }
+    .split-heading .number { width:112px; height:112px; flex:0 0 112px; font-size:54px; border-radius:25px; }
+    .split-title { margin:0; width:455px; color:var(--verdeEscuro); font-size:58px; line-height:1; letter-spacing:-2px; font-weight:900; }
+    .split-highlight { margin-top:28px; font-size:33px; line-height:1.12; font-weight:800; color:var(--verdeEscuro); }
+    .split-text { margin-top:18px; font-size:25px; line-height:1.27; color:var(--texto); }
+    .split-list { margin-top:26px; background:rgba(255,255,255,.76); border-radius:28px; padding:20px 24px; }
+    .split-item { display:flex; align-items:center; gap:18px; margin:13px 0; font-size:22px; line-height:1.18; color:var(--texto); }
+    .split-icon { width:52px; height:52px; flex:0 0 52px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--amarelo); color:var(--verdeEscuro); font-size:23px; font-weight:900; }
+
+    /* Variações mantendo a identidade LawTask */
+    .cards::before { content:""; position:absolute; z-index:1; right:0; top:0; width:42%; height:100%; background:var(--verde); border-radius:0 0 0 48%; }
+    .cards-photo { z-index:4; right:-25px; bottom:0; width:455px; height:760px; border-radius:52% 0 0 0; }
+    .cards-grid { grid-template-columns:1fr; width:590px; gap:14px; }
+    .info-card { min-height:105px; display:flex; align-items:center; gap:18px; padding:18px 22px; }
+    .card-number { flex:0 0 58px; width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--amarelo); color:var(--verdeEscuro); font-size:20px; }
+    .card-text { margin:0; font-size:22px; }
+    .destaque-overlay { background:linear-gradient(90deg, rgba(247,242,232,.98) 0%, rgba(247,242,232,.96) 42%, rgba(247,242,232,.62) 60%, rgba(0,72,63,.15) 100%); }
+    .destaque::after { content:""; position:absolute; z-index:5; right:-150px; top:-180px; width:520px; height:390px; background:var(--verde); border-radius:0 0 0 70%; }
+
   `;
 }
 
@@ -1029,6 +1089,9 @@ function renderSlide(slide) {
 
     case "cards":
       return renderCards(slide);
+
+    case "split-left":
+      return renderSplitLeft(slide);
 
     case "final":
       return renderFinal(slide);
@@ -1172,7 +1235,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "LawTask Social Renderer",
-    version: "2.3.0"
+    version: "2.5.0"
   });
 });
 
@@ -1261,7 +1324,11 @@ app.post("/render", async (req, res) => {
           body.imagem_url || "",
 
         imagem_tema:
-          body.imagem_tema || ""
+          body.imagem_tema || "",
+        indice_slide:
+          body.indice_slide,
+        total_slides:
+          body.total_slides
       };
 
       slides = [
@@ -1426,7 +1493,7 @@ app.listen(
   "0.0.0.0",
   () => {
     console.log(
-      `LawTask Social Renderer v2.3.0 rodando na porta ${PORT}`
+      `LawTask Social Renderer v2.5.0 rodando na porta ${PORT}`
     );
   }
 );
