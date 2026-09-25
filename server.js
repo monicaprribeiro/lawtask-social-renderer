@@ -38,12 +38,14 @@ function randomId() {
 }
 
 /*
-  O n8n trabalha com:
+  TIPOS RECEBIDOS DO N8N:
+
   capa
   conteudo
   fechamento
 
-  O Renderer trabalha internamente com:
+  TIPOS INTERNOS DO RENDERER:
+
   hero
   lista
   cards
@@ -63,14 +65,14 @@ function normalizeTipo(tipo = "", slide = {}) {
   }
 
   if (valor === "conteudo") {
-    /*
-      Se houver vários itens, usamos LISTA.
-      Se houver poucos itens, podemos usar CARDS.
+    const quantidadeItens = Array.isArray(slide.itens)
+      ? slide.itens.length
+      : 0;
 
-      Isso cria variação visual automática.
+    /*
+      Alternamos o layout conforme a estrutura
+      do conteúdo para evitar slides repetitivos.
     */
-    const quantidadeItens =
-      Array.isArray(slide.itens) ? slide.itens.length : 0;
 
     if (quantidadeItens >= 4) {
       return "lista";
@@ -91,7 +93,9 @@ function normalizeTipo(tipo = "", slide = {}) {
     "final"
   ];
 
-  return permitidos.includes(valor) ? valor : "destaque";
+  return permitidos.includes(valor)
+    ? valor
+    : "destaque";
 }
 
 function normalizarSlide(slide = {}, fallback = {}) {
@@ -102,13 +106,13 @@ function normalizarSlide(slide = {}, fallback = {}) {
     ),
 
     numero:
-      slide.numero ||
-      fallback.numero ||
+      slide.numero ??
+      fallback.numero ??
       "",
 
     categoria:
-      slide.categoria ||
-      fallback.categoria ||
+      slide.categoria ??
+      fallback.categoria ??
       "",
 
     titulo:
@@ -120,13 +124,13 @@ function normalizarSlide(slide = {}, fallback = {}) {
       "",
 
     subtitulo:
-      slide.subtitulo ||
-      fallback.subtitulo ||
+      slide.subtitulo ??
+      fallback.subtitulo ??
       "",
 
     destaque:
-      slide.destaque ||
-      fallback.destaque ||
+      slide.destaque ??
+      fallback.destaque ??
       "",
 
     texto:
@@ -136,9 +140,10 @@ function normalizarSlide(slide = {}, fallback = {}) {
       fallback.resumo ||
       "",
 
-    itens:
-      Array.isArray(slide.itens)
-        ? slide.itens
+    itens: Array.isArray(slide.itens)
+      ? slide.itens
+      : Array.isArray(fallback.itens)
+        ? fallback.itens
         : [],
 
     imagem_url:
@@ -154,7 +159,7 @@ function normalizarSlide(slide = {}, fallback = {}) {
 }
 
 /* =========================================================
-   CSS BASE — IDENTIDADE LAWTASK
+   CSS BASE
 ========================================================= */
 
 function baseCss() {
@@ -366,7 +371,9 @@ function footer() {
 
 function imagem(slide, className = "photo") {
   if (!slide.imagem_url) {
-    return `<div class="${className} photo-placeholder"></div>`;
+    return `
+      <div class="${className} photo-placeholder"></div>
+    `;
   }
 
   return `
@@ -379,7 +386,7 @@ function imagem(slide, className = "photo") {
 }
 
 /* =========================================================
-   HERO — CAPA
+   HERO / CAPA
 ========================================================= */
 
 function renderHero(slide) {
@@ -408,13 +415,21 @@ function renderHero(slide) {
 
         ${
           slide.subtitulo
-            ? `<div class="hero-subtitle">${escapeHtml(slide.subtitulo)}</div>`
+            ? `
+              <div class="hero-subtitle">
+                ${escapeHtml(slide.subtitulo)}
+              </div>
+            `
             : ""
         }
 
         ${
           slide.texto
-            ? `<p class="hero-text">${escapeHtml(slide.texto)}</p>`
+            ? `
+              <p class="hero-text">
+                ${escapeHtml(slide.texto)}
+              </p>
+            `
             : ""
         }
 
@@ -438,8 +453,13 @@ function renderLista(slide) {
     .map(
       (item, index) => `
         <div class="list-item">
-          <div class="bullet">${index + 1}</div>
-          <div>${escapeHtml(item)}</div>
+          <div class="bullet">
+            ${index + 1}
+          </div>
+
+          <div>
+            ${escapeHtml(item)}
+          </div>
         </div>
       `
     )
@@ -462,7 +482,11 @@ function renderLista(slide) {
 
           ${
             slide.numero
-              ? `<div class="number">${escapeHtml(slide.numero)}</div>`
+              ? `
+                <div class="number">
+                  ${escapeHtml(slide.numero)}
+                </div>
+              `
               : ""
           }
 
@@ -474,19 +498,31 @@ function renderLista(slide) {
 
         ${
           slide.destaque
-            ? `<div class="lista-destaque">${escapeHtml(slide.destaque)}</div>`
+            ? `
+              <div class="lista-destaque">
+                ${escapeHtml(slide.destaque)}
+              </div>
+            `
             : ""
         }
 
         ${
           slide.texto
-            ? `<div class="lista-texto">${escapeHtml(slide.texto)}</div>`
+            ? `
+              <div class="lista-texto">
+                ${escapeHtml(slide.texto)}
+              </div>
+            `
             : ""
         }
 
         ${
           itens
-            ? `<div class="list-card">${itens}</div>`
+            ? `
+              <div class="list-card">
+                ${itens}
+              </div>
+            `
             : ""
         }
 
@@ -508,12 +544,15 @@ function renderCards(slide) {
     .map(
       (item, index) => `
         <div class="info-card">
+
           <div class="card-number">
             ${String(index + 1).padStart(2, "0")}
           </div>
+
           <div class="card-text">
             ${escapeHtml(item)}
           </div>
+
         </div>
       `
     )
@@ -530,7 +569,11 @@ function renderCards(slide) {
 
         ${
           slide.numero
-            ? `<div class="small-label">ETAPA ${escapeHtml(slide.numero)}</div>`
+            ? `
+              <div class="small-label">
+                ETAPA ${escapeHtml(slide.numero)}
+              </div>
+            `
             : ""
         }
 
@@ -540,7 +583,11 @@ function renderCards(slide) {
 
         ${
           slide.destaque
-            ? `<div class="cards-destaque">${escapeHtml(slide.destaque)}</div>`
+            ? `
+              <div class="cards-destaque">
+                ${escapeHtml(slide.destaque)}
+              </div>
+            `
             : ""
         }
 
@@ -580,7 +627,11 @@ function renderDestaque(slide) {
 
         ${
           slide.numero
-            ? `<div class="small-label">ETAPA ${escapeHtml(slide.numero)}</div>`
+            ? `
+              <div class="small-label">
+                ETAPA ${escapeHtml(slide.numero)}
+              </div>
+            `
             : ""
         }
 
@@ -590,13 +641,21 @@ function renderDestaque(slide) {
 
         ${
           slide.destaque
-            ? `<div class="destaque-highlight">${escapeHtml(slide.destaque)}</div>`
+            ? `
+              <div class="destaque-highlight">
+                ${escapeHtml(slide.destaque)}
+              </div>
+            `
             : ""
         }
 
         ${
           slide.texto
-            ? `<div class="destaque-text">${escapeHtml(slide.texto)}</div>`
+            ? `
+              <div class="destaque-text">
+                ${escapeHtml(slide.texto)}
+              </div>
+            `
             : ""
         }
 
@@ -628,7 +687,11 @@ function renderFinal(slide) {
 
         ${
           slide.numero
-            ? `<div class="number">${escapeHtml(slide.numero)}</div>`
+            ? `
+              <div class="number">
+                ${escapeHtml(slide.numero)}
+              </div>
+            `
             : ""
         }
 
@@ -638,7 +701,11 @@ function renderFinal(slide) {
 
         ${
           slide.texto
-            ? `<div class="final-text">${escapeHtml(slide.texto)}</div>`
+            ? `
+              <div class="final-text">
+                ${escapeHtml(slide.texto)}
+              </div>
+            `
             : ""
         }
 
@@ -646,8 +713,15 @@ function renderFinal(slide) {
           slide.destaque
             ? `
               <div class="final-box">
-                <div class="final-check">✓</div>
-                <div>${escapeHtml(slide.destaque)}</div>
+
+                <div class="final-check">
+                  ✓
+                </div>
+
+                <div>
+                  ${escapeHtml(slide.destaque)}
+                </div>
+
               </div>
             `
             : ""
@@ -1097,32 +1171,44 @@ async function gerarImagem(browser, slide, index = 0) {
     });
 
     /*
-      Corrige URLs locais do próprio Renderer.
+      Converte caminhos locais das imagens para
+      URLs públicas do Renderer.
     */
 
     await page.evaluate((publicUrl) => {
-      document.querySelectorAll('img[src^="/"]').forEach((img) => {
-        img.src = publicUrl + img.getAttribute("src");
-      });
+      document
+        .querySelectorAll('img[src^="/"]')
+        .forEach((img) => {
+          img.src =
+            publicUrl +
+            img.getAttribute("src");
+        });
     }, PUBLIC_URL);
 
     /*
-      Aguarda logo + fotografia.
+      Aguarda logo e fotografias.
     */
 
     try {
-      await page.waitForFunction(() => {
-        return Array.from(document.images).every(
-          (img) =>
-            img.complete &&
-            img.naturalWidth > 0
-        );
-      }, {
-        timeout: 15000
-      });
+      await page.waitForFunction(
+        () => {
+          return Array
+            .from(document.images)
+            .every(
+              (img) =>
+                img.complete &&
+                img.naturalWidth > 0
+            );
+        },
+        {
+          timeout: 15000
+        }
+      );
     } catch {
       console.log(
-        `Aviso: alguma imagem do slide ${index + 1} não terminou de carregar.`
+        `Aviso: alguma imagem do slide ${
+          index + 1
+        } não terminou de carregar.`
       );
     }
 
@@ -1134,10 +1220,11 @@ async function gerarImagem(browser, slide, index = 0) {
     const filename =
       `lawtask-${timestamp}-${index + 1}-${id}.png`;
 
-    const outputPath = path.join(
-      RENDERS_DIR,
-      filename
-    );
+    const outputPath =
+      path.join(
+        RENDERS_DIR,
+        filename
+      );
 
     await page.screenshot({
       path: outputPath,
@@ -1164,7 +1251,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "LawTask Social Renderer",
-    version: "2.1.0"
+    version: "2.2.0"
   });
 });
 
@@ -1178,10 +1265,23 @@ app.post("/render", async (req, res) => {
   try {
     const body = req.body || {};
 
+    /*
+      LOG TEMPORÁRIO.
+
+      Isso mostrará no Coolify exatamente o que
+      cada item do n8n enviou ao Renderer.
+    */
+
+    console.log(
+      "BODY RECEBIDO DO N8N:",
+      JSON.stringify(body, null, 2)
+    );
+
     let slides = [];
 
     /*
-      CARROSSEL COMPLETO
+      CASO 1:
+      O n8n envia o carrossel inteiro.
     */
 
     if (
@@ -1189,74 +1289,77 @@ app.post("/render", async (req, res) => {
       body.slides.length > 0
     ) {
 
-      slides = body.slides.map((slide) =>
-        normalizarSlide(slide, body)
+      slides = body.slides.map(
+        (slide) =>
+          normalizarSlide(
+            slide,
+            body
+          )
       );
 
     } else {
 
       /*
-        ITEM INDIVIDUAL DO N8N.
+        CASO 2:
+        O n8n envia UM SLIDE por item.
 
-        Importante porque atualmente o Split Out
-        envia um slide por execução.
+        Não tentamos descobrir se é capa,
+        conteúdo ou fechamento.
+
+        Utilizamos exatamente body.tipo.
       */
+
+      const slideRecebido = {
+        tipo:
+          body.tipo,
+
+        numero:
+          body.numero,
+
+        categoria:
+          body.categoria,
+
+        titulo:
+          body.titulo,
+
+        subtitulo:
+          body.subtitulo,
+
+        destaque:
+          body.destaque,
+
+        texto:
+          body.texto,
+
+        itens:
+          Array.isArray(body.itens)
+            ? body.itens
+            : [],
+
+        imagem_url:
+          body.imagem_url || "",
+
+        imagem_tema:
+          body.imagem_tema || ""
+      };
 
       slides = [
         normalizarSlide(
-          {
-            tipo:
-              body.tipo ||
-              (
-                body.indice_slide === 1
-                  ? "capa"
-                  : (
-                    body.indice_slide === body.total_slides
-                      ? "fechamento"
-                      : "conteudo"
-                  )
-              ),
-
-            numero:
-              body.numero,
-
-            categoria:
-              body.categoria,
-
-            titulo:
-              body.titulo ||
-              body.texto_arte ||
-              body.assunto,
-
-            subtitulo:
-              body.subtitulo,
-
-            destaque:
-              body.destaque,
-
-            texto:
-              body.texto ||
-              body.resumo,
-
-            itens:
-              body.itens,
-
-            imagem_url:
-              body.imagem_url,
-
-            imagem_tema:
-              body.imagem_tema
-          },
+          slideRecebido,
           body
         )
       ];
     }
 
+    /*
+      VALIDAÇÃO
+    */
+
     if (!slides[0]?.titulo) {
       return res.status(400).json({
         success: false,
         error:
-          "É necessário informar um título, assunto ou texto_arte."
+          "É necessário informar um título."
       });
     }
 
@@ -1267,6 +1370,15 @@ app.post("/render", async (req, res) => {
           "O carrossel pode possuir no máximo 10 slides."
       });
     }
+
+    /*
+      DEBUG DA NORMALIZAÇÃO
+    */
+
+    console.log(
+      "SLIDES NORMALIZADOS:",
+      JSON.stringify(slides, null, 2)
+    );
 
     browser = await chromium.launch({
       headless: true,
@@ -1279,18 +1391,24 @@ app.post("/render", async (req, res) => {
 
     const resultados = [];
 
-    for (let i = 0; i < slides.length; i++) {
-      const resultado = await gerarImagem(
-        browser,
-        slides[i],
-        i
-      );
+    for (
+      let i = 0;
+      i < slides.length;
+      i++
+    ) {
+      const resultado =
+        await gerarImagem(
+          browser,
+          slides[i],
+          i
+        );
 
       resultados.push({
         numero: i + 1,
         tipo: slides[i].tipo,
         titulo: slides[i].titulo,
-        imagem_tema: slides[i].imagem_tema,
+        imagem_tema:
+          slides[i].imagem_tema,
         ...resultado
       });
     }
@@ -1299,20 +1417,32 @@ app.post("/render", async (req, res) => {
     browser = null;
 
     /*
-      UM SLIDE
+      RESPOSTA PARA UM SLIDE
     */
 
     if (resultados.length === 1) {
+
+      const indiceSlide =
+        Number(body.indice_slide);
+
+      const totalSlides =
+        Number(body.total_slides);
+
       return res.json({
         success: true,
+
         formato:
           body.formato || "unico",
 
         indice_slide:
-          body.indice_slide || 1,
+          Number.isFinite(indiceSlide)
+            ? indiceSlide
+            : null,
 
         total_slides:
-          body.total_slides || 1,
+          Number.isFinite(totalSlides)
+            ? totalSlides
+            : null,
 
         tipo:
           resultados[0].tipo,
@@ -1335,7 +1465,7 @@ app.post("/render", async (req, res) => {
     }
 
     /*
-      CARROSSEL INTEIRO
+      RESPOSTA PARA CARROSSEL INTEIRO
     */
 
     return res.json({
@@ -1370,8 +1500,12 @@ app.post("/render", async (req, res) => {
    START
 ========================================================= */
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `LawTask Social Renderer v2.1.0 rodando na porta ${PORT}`
-  );
-});
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+    console.log(
+      `LawTask Social Renderer v2.2.0 rodando na porta ${PORT}`
+    );
+  }
+);
